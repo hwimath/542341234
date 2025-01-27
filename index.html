@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>로그 부등식</title>
+<style>
+  body {
+    background-color: #ffffff;
+    color: #000000;
+    font-family: sans-serif;
+    margin: 20px;
+  }
+  .hidden { display: none; }
+  .energy-bar-wrapper {
+    width: 200px;
+    height: 20px;
+    border: 1px solid #000;
+    margin-bottom: 10px;
+  }
+  .energy-bar {
+    height: 100%;
+    background-color: #000;
+    width: 100%;
+  }
+  .button {
+    margin: 5px;
+    padding: 5px 10px;
+    border: 1px solid #000;
+    background: #fff;
+    cursor: pointer;
+  }
+  .button:hover {
+    background: #ddd;
+  }
+  .choice-button {
+    display: inline-block;
+    margin: 2px;
+    padding: 4px 8px;
+    border: 1px solid #000;
+    background: #fff;
+    cursor: pointer;
+  }
+  .choice-button:hover {
+    background: #ddd;
+  }
+</style>
+<!-- MathJax 로드 -->
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" defer></script>
+</head>
+<body>
+
+<h1>로그 부등식 퀴즈 게임</h1>
+
+<div id="nameInputSection">
+  <p>이름을 입력해주세요.</p>
+  <input type="text" id="playerName" placeholder="이름">
+  <button class="button" onclick="goDifficulty()">다음</button>
+</div>
+
+<div id="difficultySection" class="hidden">
+  <p>난이도를 선택하세요.</p>
+  <button class="button" onclick="setDifficulty('최상')">최상 (20초 제한, 문제 당 20점)</button>
+  <button class="button" onclick="setDifficulty('상')">상 (30초 제한, 문제 당 15점)</button>
+  <button class="button" onclick="setDifficulty('중')">중 (40초 제한, 문제 당 13점)</button>
+  <button class="button" onclick="setDifficulty('하')">하 (시간 제한 없음, 문제 당 10점)</button>
+</div>
+
+<div id="gameSection" class="hidden">
+  <div>
+    <p>플레이어: <span id="displayName"></span></p>
+    <p>선택 난이도: <span id="displayDifficulty"></span></p>
+    <p>현재 점수: <span id="score">0</span></p>
+    <p>남은 기회: <span id="life">3</span></p>
+    <p>총 진행 시간: <span id="totalTime">0</span>초</p>
+  </div>
+  <hr>
+  <div id="energyBarContainer" class="hidden">
+    <div class="energy-bar-wrapper">
+      <div id="energyBar" class="energy-bar"></div>
+    </div>
+  </div>
+  <div id="questionContainer"></div>
+  <div id="responseContainer"></div>
+</div>
+
+<div id="endSection" class="hidden">
+  <h2>게임이 종료되었습니다.</h2>
+  <p>최종 점수: <span id="finalScore"></span></p>
+  <button class="button" onclick="sendScore()">점수 전송</button>
+  <div id="response"></div>
+</div>
+
+<script>
+// --------------------------------------------------------------------------------------
+// 문제 데이터 (총 29문제: 1~10, 21~30, 68~76)
+// --------------------------------------------------------------------------------------
+// 주의: 분수나 로그의 분수 기호 등을 \\dfrac 형태로 수정,
+//       모든 수식은 \\(...\\) 형태를 사용하도록 이스케이프 처리
+//       정답: ①이면 isCorrect:true는 choices[0], ②이면 choices[1], 등등
+// --------------------------------------------------------------------------------------
+const questionsData = [
+  {
+    question: "부등식 \\(\\log_{\\dfrac{1}{2}} (x + 2) > -2\\)를 풀면?",
+    choices: [
+      { text: "① \\(-4 < x < 2\\)", isCorrect: false },
+      { text: "② \\(-2 < x < 2\\)", isCorrect: true },
+      { text: "③ \\(x > 2\\)", isCorrect: false },
+      { text: "④ \\(x < -2\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{\\dfrac{1}{2}} (2x - 1) < 2\\)를 만족하는 \\(x\\)의 범위는?",
+    choices: [
+      { text: "① \\(x > \\dfrac{5}{8}\\)", isCorrect: true },
+      { text: "② \\(x < \\dfrac{5}{8}\\)", isCorrect: false },
+      { text: "③ \\(\\dfrac{1}{2} < x < \\dfrac{5}{8}\\)", isCorrect: false },
+      { text: "④ \\(x > 1\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{3} (3x) > 1\\)의 해는?",
+    choices: [
+      { text: "① \\(x > 0\\)", isCorrect: false },
+      { text: "② \\(x > 1\\)", isCorrect: true },
+      { text: "③ \\(x > 3\\)", isCorrect: false },
+      { text: "④ \\(x < 1\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{\\dfrac{1}{4}} (x - 1) \\ge 2\\)를 풀면?",
+    choices: [
+      { text: "① \\(1 < x \\le \\dfrac{9}{16}\\)", isCorrect: true },
+      { text: "② \\(x \\ge \\dfrac{9}{16}\\)", isCorrect: false },
+      { text: "③ \\(x \\le 1\\)", isCorrect: false },
+      { text: "④ \\(x > 1\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{2} (x - 1) < 2\\)의 해는?",
+    choices: [
+      { text: "① \\(1 < x < 3\\)", isCorrect: true },
+      { text: "② \\(x > 3\\)", isCorrect: false },
+      { text: "③ \\(x < 1\\)", isCorrect: false },
+      { text: "④ \\(1 < x < 5\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{\\dfrac{1}{3}} (x - 1) > 2\\)를 만족하는 \\(x\\)의 범위는?",
+    choices: [
+      { text: "① \\(1 < x < \\dfrac{10}{9}\\)", isCorrect: true },
+      { text: "② \\(x > \\dfrac{10}{9}\\)", isCorrect: false },
+      { text: "③ \\(x < 1\\)", isCorrect: false },
+      { text: "④ \\(x > 1\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{2} (x - 1) < 1\\)의 해는?",
+    choices: [
+      { text: "① \\(1 < x < 3\\)", isCorrect: true },
+      { text: "② \\(x > 3\\)", isCorrect: false },
+      { text: "③ \\(x < 1\\)", isCorrect: false },
+      { text: "④ \\(x > 1\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{3} (x - 1) < \\log_{3} 5\\)의 해는?",
+    choices: [
+      { text: "① \\(1 < x < 6\\)", isCorrect: true },
+      { text: "② \\(x > 6\\)", isCorrect: false },
+      { text: "③ \\(x < 1\\)", isCorrect: false },
+      { text: "④ \\(x > 5\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{2} (x + 4) < 3\\)의 해는?",
+    choices: [
+      { text: "① \\(-4 < x < 4\\)", isCorrect: true },
+      { text: "② \\(x > 4\\)", isCorrect: false },
+      { text: "③ \\(x < -4\\)", isCorrect: false },
+      { text: "④ \\(x > -4\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{2} (2x) < \\log_{2} (x + 2)\\)의 해는?",
+    choices: [
+      { text: "① \\(0 < x < 2\\)", isCorrect: true },
+      { text: "② \\(x > 2\\)", isCorrect: false },
+      { text: "③ \\(x < 0\\)", isCorrect: false },
+      { text: "④ \\(x > 0\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{\\dfrac{1}{4}} \\dfrac{2x - 3}{4} \\ge \\log_{\\dfrac{1}{4}} \\dfrac{5 - x}{4}\\)를 풀면?",
+    choices: [
+      { text: "① \\(2 < x \\le 4\\)", isCorrect: true },
+      { text: "② \\(x > 4\\)", isCorrect: false },
+      { text: "③ \\(x < 2\\)", isCorrect: false },
+      { text: "④ \\(x \\ge 5\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{\\dfrac{1}{3}} (3x - 1) \\ge \\log_{\\dfrac{1}{3}} (x + 3)\\)의 해는?",
+    choices: [
+      { text: "① \\(\\dfrac{1}{3} < x \\le 2\\)", isCorrect: true },
+      { text: "② \\(x > 2\\)", isCorrect: false },
+      { text: "③ \\(x < \\dfrac{1}{3}\\)", isCorrect: false },
+      { text: "④ \\(x \\ge 3\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{4} (x - 1) < \\log_{2} (x - 1)\\)의 해는?",
+    choices: [
+      { text: "① \\(x > 2\\)", isCorrect: true },
+      { text: "② \\(1 < x < 2\\)", isCorrect: false },
+      { text: "③ \\(x < 1\\)", isCorrect: false },
+      { text: "④ \\(x \\ge 3\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{2} x + \\log_{2} (x + 2) \\le 3\\)의 해는?",
+    choices: [
+      { text: "① \\(0 < x \\le 2\\)", isCorrect: true },
+      { text: "② \\(x > 2\\)", isCorrect: false },
+      { text: "③ \\(x < -4\\)", isCorrect: false },
+      { text: "④ \\(x \\ge 4\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{2} (x + 3) > \\log_{\\sqrt{2}} (x^2 + 1)\\)의 해는?",
+    choices: [
+      { text: "① \\(x > -\\dfrac{4}{3}\\)", isCorrect: true },
+      { text: "② \\(x < -\\dfrac{4}{3}\\)", isCorrect: false },
+      { text: "③ \\(x > 3\\)", isCorrect: false },
+      { text: "④ \\(x < 0\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{\\dfrac{1}{\\sqrt{3}}} (x + 6) > \\log_{\\dfrac{1}{\\sqrt{3}}} (2x + 1)\\)의 해는?",
+    choices: [
+      { text: "① \\(x > 5\\)", isCorrect: true },
+      { text: "② \\(x < 5\\)", isCorrect: false },
+      { text: "③ \\(-6 < x < 5\\)", isCorrect: false },
+      { text: "④ \\(x > -6\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{\\sqrt{3}} (x + 1) < \\log_{3} (x + 3)\\)의 해는?",
+    choices: [
+      { text: "① \\(-1 < x < 1\\)", isCorrect: true },
+      { text: "② \\(x > 1\\)", isCorrect: false },
+      { text: "③ \\(x < -1\\)", isCorrect: false },
+      { text: "④ \\(x > 3\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{3} (2x + 1) \\ge \\log_{3} (4x + 5)\\)의 해는?",
+    choices: [
+      { text: "① \\(x \\ge 1\\)", isCorrect: true },
+      { text: "② \\(x \\le -1\\)", isCorrect: false },
+      { text: "③ \\(1 < x < 3\\)", isCorrect: false },
+      { text: "④ \\(x < 0\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{3} (x - 1) + 1 < \\log_{3} x\\)의 해는?",
+    choices: [
+      { text: "① \\(1 < x < \\dfrac{3}{2}\\)", isCorrect: true },
+      { text: "② \\(x > \\dfrac{3}{2}\\)", isCorrect: false },
+      { text: "③ \\(x < 1\\)", isCorrect: false },
+      { text: "④ \\(x \\ge 2\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\(\\log_{\\dfrac{1}{2}} (x - 1) < \\log_{\\dfrac{1}{2}} (5 - 2x)\\)의 해는?",
+    choices: [
+      { text: "① \\(2 < x < \\dfrac{5}{2}\\)", isCorrect: true },
+      { text: "② \\(x < 2\\)", isCorrect: false },
+      { text: "③ \\(x > \\dfrac{5}{2}\\)", isCorrect: false },
+      { text: "④ \\(1 < x < 2\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "이차방정식 \\(x^2 - 2(1 + \\log_2 a)x + 1 = 0\\)이 실근을 갖도록 하는 실수 \\(a\\)의 범위는?",
+    choices: [
+      { text: "① \\(0 < a \\le \\dfrac{1}{4}\\) 또는 \\(a \\ge 1\\)", isCorrect: true },
+      { text: "② \\(a > 1\\)", isCorrect: false },
+      { text: "③ \\(a < 0\\)", isCorrect: false },
+      { text: "④ \\(\\dfrac{1}{4} \\le a \\le 1\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "이차방정식 \\(x^2 - x \\log_2 a + 2 \\log_2 a + 5 = 0\\)이 실근을 갖지 않도록 하는 \\(a\\)의 범위는?",
+    choices: [
+      { text: "① \\(\\dfrac{1}{4} < a < 1024\\)", isCorrect: true },
+      { text: "② \\(a > 1024\\)", isCorrect: false },
+      { text: "③ \\(a < \\dfrac{1}{4}\\)", isCorrect: false },
+      { text: "④ 모든 실수 \\(a\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "이차방정식 \\(x^2 - (\\log a + 1)x + (\\log a + 9) = 0\\)이 중근을 갖도록 하는 \\(a\\)의 값은?",
+    choices: [
+      { text: "① \\(10^{-8}\\) 또는 \\(10^9\\)", isCorrect: true },
+      { text: "② \\(10^{-4}\\)", isCorrect: false },
+      { text: "③ \\(10^2\\)", isCorrect: false },
+      { text: "④ \\(10^5\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "이차방정식 \\(x^2 + x \\log a^2 + \\log a^3 + 4 = 0\\)이 중근을 갖는 모든 \\(a\\)의 값은?",
+    choices: [
+      { text: "① \\(10^{-1}\\) 또는 \\(10^{10}\\)", isCorrect: true },
+      { text: "② \\(10^{-5}\\)", isCorrect: false },
+      { text: "③ \\(10^3\\)", isCorrect: false },
+      { text: "④ 해 없음", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\((\\log x)^2 - k \\log x^2 + 3 - 2k \\ge 0\\)이 모든 양의 실수 \\(x\\)에 대해 성립하도록 하는 \\(k\\)의 최댓값은?",
+    choices: [
+      { text: "① 1", isCorrect: true },
+      { text: "② 2", isCorrect: false },
+      { text: "③ 3", isCorrect: false },
+      { text: "④ 4", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\((\\log x)^2 + \\log x^2 + k \\ge 0\\)이 \\(x\\)의 값과 무관하게 항상 성립하도록 하는 \\(k\\)의 범위는?",
+    choices: [
+      { text: "① \\(k \\ge 1\\)", isCorrect: true },
+      { text: "② \\(k \\le -1\\)", isCorrect: false },
+      { text: "③ \\(k > 0\\)", isCorrect: false },
+      { text: "④ \\(k < 2\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "양수 \\(x\\)에 대해 \\(x^{\\log x} > (27x)^k\\)가 항상 성립하도록 하는 \\(k\\)의 범위는?",
+    choices: [
+      { text: "① \\(-\\infty < k < 0\\)", isCorrect: true },
+      { text: "② \\(0 < k < 3\\)", isCorrect: false },
+      { text: "③ \\(k > 3\\)", isCorrect: false },
+      { text: "④ 모든 실수 \\(k\\)", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\((\\log x)^2 - k \\log x + 3 - k \\ge 0\\)이 모든 양수 \\(x\\)에 대해 성립하도록 하는 \\(k\\)의 최댓값은?",
+    choices: [
+      { text: "① 3", isCorrect: true },
+      { text: "② 2", isCorrect: false },
+      { text: "③ 1", isCorrect: false },
+      { text: "④ 0", isCorrect: false }
+    ]
+  },
+  {
+    question: "부등식 \\((\\log_2 x)^2 + k(\\log_2 x) + 4 \\ge 0\\)이 \\(x > 0\\)인 모든 실수 \\(x\\)에 대해 성립하도록 하는 정수 \\(k\\)의 개수는?",
+    choices: [
+      { text: "① 5", isCorrect: true },
+      { text: "② 4", isCorrect: false },
+      { text: "③ 3", isCorrect: false },
+      { text: "④ 2", isCorrect: false }
+    ]
+  },
+];
+
+// --------------------------------------------------------------------------------------
+// 전역 변수
+// --------------------------------------------------------------------------------------
+let playerName = "";
+let difficulty = "";
+let timeLimitPerQuestion = 0; // 0이면 시간제한 없음
+let scorePerQuestion = 0;
+let totalScore = 0;
+let life = 3;
+let currentQuestionIndex = 0;
+let questionOrder = []; // 랜덤 문제 인덱스 배열
+let questionTimer = null;
+let energyBarInterval = null;
+let remainingTime = 0;  // 해당 문제의 남은 시간
+let totalTime = 0;     // 게임 시작 후 경과 시간(초)
+let totalTimeInterval = null;
+
+// --------------------------------------------------------------------------------------
+// 초기 화면에서 이름 -> 난이도 선택으로
+// --------------------------------------------------------------------------------------
+function goDifficulty(){
+  const nameField = document.getElementById("playerName");
+  if(!nameField.value.trim()){
+    alert("이름을 입력하세요.");
+    return;
+  }
+  playerName = nameField.value.trim();
+  document.getElementById("nameInputSection").classList.add("hidden");
+  document.getElementById("difficultySection").classList.remove("hidden");
+}
+
+// --------------------------------------------------------------------------------------
+// 난이도 설정
+// --------------------------------------------------------------------------------------
+function setDifficulty(diff){
+  difficulty = diff;
+  switch(diff){
+    case "최상":
+      timeLimitPerQuestion = 20;
+      scorePerQuestion = 20;
+      break;
+    case "상":
+      timeLimitPerQuestion = 30;
+      scorePerQuestion = 15;
+      break;
+    case "중":
+      timeLimitPerQuestion = 40;
+      scorePerQuestion = 13;
+      break;
+    case "하":
+      timeLimitPerQuestion = 0; // 무제한
+      scorePerQuestion = 10;
+      break;
+  }
+  startGame();
+}
+
+// --------------------------------------------------------------------------------------
+// 게임 시작
+// --------------------------------------------------------------------------------------
+function startGame(){
+  // 화면 전환
+  document.getElementById("difficultySection").classList.add("hidden");
+  document.getElementById("gameSection").classList.remove("hidden");
+  document.getElementById("displayName").innerText = playerName;
+  document.getElementById("displayDifficulty").innerText = difficulty;
+
+  // 전체 시간 표시 타이머
+  totalTimeInterval = setInterval(()=>{
+    totalTime++;
+    document.getElementById("totalTime").innerText = totalTime;
+  },1000);
+
+  // 문제 셔플
+  shuffleQuestions();
+  // 첫 문제 표시
+  loadQuestion();
+}
+
+// --------------------------------------------------------------------------------------
+// 문제 배열 셔플
+// --------------------------------------------------------------------------------------
+function shuffleQuestions(){
+  const count = questionsData.length;
+  questionOrder = [];
+  for(let i=0; i<count; i++){
+    questionOrder.push(i);
+  }
+  // Fisher-Yates shuffle
+  for(let i=count-1; i>0; i--){
+    const j = Math.floor(Math.random()* (i+1));
+    [questionOrder[i], questionOrder[j]] = [questionOrder[j], questionOrder[i]];
+  }
+  currentQuestionIndex = 0;
+}
+
+// --------------------------------------------------------------------------------------
+// 보기 배열 셔플(객관식 4개)
+// --------------------------------------------------------------------------------------
+function shuffleArray(arr){
+  for(let i=arr.length-1; i>0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+// --------------------------------------------------------------------------------------
+// 문제 로드
+// 모든 문제를 다 풀면 다시 무한 반복
+// --------------------------------------------------------------------------------------
+function loadQuestion(){
+  if(life <= 0){
+    endGame();
+    return;
+  }
+  
+  // 모든 문제를 다 푼 경우 -> 다시 셔플하여 무한 반복
+  if(currentQuestionIndex >= questionsData.length){
+    shuffleQuestions();
+  }
+
+  const qIndex = questionOrder[currentQuestionIndex];
+  const questionObj = questionsData[qIndex];
+
+  // 보기 셔플을 위해 깊은 복사
+  const shuffledChoices = JSON.parse(JSON.stringify(questionObj.choices));
+  shuffleArray(shuffledChoices);
+
+  const container = document.getElementById("questionContainer");
+  const responseArea = document.getElementById("responseContainer");
+  container.innerHTML = "";
+  responseArea.innerHTML = "";
+
+  // 문제 표시
+  const qEl = document.createElement("div");
+  qEl.innerHTML = `<p>${questionObj.question}</p>`;
+  container.appendChild(qEl);
+
+  // 보기 표시
+  shuffledChoices.forEach((c)=>{
+    const btn = document.createElement("button");
+    btn.className = "choice-button";
+    btn.innerHTML = c.text;
+    btn.onclick = ()=>checkAnswer(c.isCorrect, questionObj, c.text);
+    container.appendChild(btn);
+  });
+
+  // MathJax 렌더링
+  MathJax.typeset();
+
+  // 시간 제한 설정
+  clearInterval(questionTimer);
+  clearInterval(energyBarInterval);
+  if(timeLimitPerQuestion > 0){
+    document.getElementById("energyBarContainer").classList.remove("hidden");
+    remainingTime = timeLimitPerQuestion;
+    const energyBar = document.getElementById("energyBar");
+    energyBar.style.width = "100%";
+    
+    const decrement = 100 / timeLimitPerQuestion; // 한번에 줄어드는 백분율
+    let currentWidth = 100;
+
+    questionTimer = setTimeout(()=>{
+      // 시간 다 됨
+      timeUp();
+    }, timeLimitPerQuestion * 1000);
+
+    energyBarInterval = setInterval(()=>{
+      currentWidth -= decrement;
+      if(currentWidth < 0) currentWidth=0;
+      energyBar.style.width = currentWidth + "%";
+    },1000);
+
+  } else {
+    // 하 난이도
+    document.getElementById("energyBarContainer").classList.add("hidden");
+  }
+
+}
+
+// --------------------------------------------------------------------------------------
+// 정답 체크
+// 틀리면 답과 함께 표시
+// --------------------------------------------------------------------------------------
+function checkAnswer(isCorrect, questionObj, choiceText){
+  clearInterval(questionTimer);
+  clearInterval(energyBarInterval);
+
+  const responseArea = document.getElementById("responseContainer");
+  responseArea.innerHTML = "";
+
+  if(isCorrect){
+    // 정답
+    totalScore += scorePerQuestion;
+    document.getElementById("score").innerText = totalScore;
+    responseArea.innerHTML = "<p>정답입니다!</p>";
+  } else {
+    // 오답
+    life--;
+    document.getElementById("life").innerText = life;
+    // 정답 찾아서 표시
+    const correct = questionObj.choices.find(ch=>ch.isCorrect);
+    responseArea.innerHTML = `<p>틀렸습니다! 정답은 "${correct.text.replace(/①|②|③|④/g,"")}"</p>`;
+    if(life <= 0){
+      endGame();
+      return;
+    }
+  }
+
+  // 다음 문제 이동(에너지바가 다되면 -> 다음 문제)
+  currentQuestionIndex++;
+  setTimeout(()=>{
+    loadQuestion();
+  }, 1000);
+}
+
+// --------------------------------------------------------------------------------------
+// 시간 종료 시(에너지바 소진)
+// life 1 감소, 바로 다음 문제
+// --------------------------------------------------------------------------------------
+function timeUp(){
+  clearInterval(questionTimer);
+  clearInterval(energyBarInterval);
+
+  life--;
+  document.getElementById("life").innerText = life;
+
+  const responseArea = document.getElementById("responseContainer");
+  responseArea.innerHTML = "<p>시간 종료! 기회가 1 줄어듭니다.</p>";
+
+  if(life <= 0){
+    endGame();
+    return;
+  }
+  currentQuestionIndex++;
+  setTimeout(()=>{
+    loadQuestion();
+  }, 1000);
+}
+
+// --------------------------------------------------------------------------------------
+// 게임 종료
+// --------------------------------------------------------------------------------------
+function endGame(){
+  clearInterval(questionTimer);
+  clearInterval(energyBarInterval);
+  clearInterval(totalTimeInterval);
+
+  document.getElementById("gameSection").classList.add("hidden");
+  document.getElementById("endSection").classList.remove("hidden");
+  document.getElementById("finalScore").innerText = totalScore;
+}
+
+// --------------------------------------------------------------------------------------
+// 점수 전송
+// --------------------------------------------------------------------------------------
+function sendScore(){
+  saveData("로그 부등식", playerName, totalScore, totalTime);
+}
+
+// --------------------------------------------------------------------------------------
+// 서버 전송 함수
+// (문제에서 주어진 코드를 그대로 사용, 성공/실패 여부 표시)
+// --------------------------------------------------------------------------------------
+async function saveData(game, name, score, elapsedTime) {
+  const FUNCTION_URL = "https://us-central1-record-f420d.cloudfunctions.net/report";
+
+  const requestData = {
+      game,
+      name,
+      score: parseInt(score, 10),
+      elapsedTime: parseInt(elapsedTime, 10)
+  };
+
+  try {
+      const response = await fetch(FUNCTION_URL, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestData)
+      });
+
+      const responseData = await response.json();
+
+      if (response.ok) {
+          document.getElementById('response').innerText =
+              `성공: ${JSON.stringify(responseData, null, 2)}`;
+      } else {
+          document.getElementById('response').innerText =
+              `오류: ${JSON.stringify(responseData, null, 2)}`;
+      }
+  } catch (error) {
+      console.error('요청 실패:', error);
+      document.getElementById('response').innerText =
+          `네트워크 오류: ${error.message}`;
+  }
+}
+</script>
+
+</body>
+</html>
