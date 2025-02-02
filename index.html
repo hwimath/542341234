@@ -127,9 +127,10 @@ const questionsData = [
     ]
   },
   {
+    // [수정 Q4] 9/16 → 17/16로 수정
     question: "부등식 \\(\\log_{\\dfrac{1}{4}} (x - 1) \\ge 2\\)를 풀면?",
     choices: [
-      { text: "① \\(1 < x \\le \\dfrac{9}{16}\\)", isCorrect: true },
+      { text: "① \\(1 < x \\le \\dfrac{17}{16}\\)", isCorrect: true },
       { text: "② \\(x \\ge \\dfrac{9}{16}\\)", isCorrect: false },
       { text: "③ \\(x \\le 1\\)", isCorrect: false },
       { text: "④ \\(x > 1\\)", isCorrect: false }
@@ -138,10 +139,11 @@ const questionsData = [
   {
     question: "부등식 \\(\\log_{2} (x - 1) < 2\\)의 해는?",
     choices: [
-      { text: "① \\(1 < x < 3\\)", isCorrect: true },
+      // [수정 Q5] 정답은 "1 < x < 5"이므로 기존 ①(1<x<3)을 false, ④(1<x<5)를 true로 변경
+      { text: "① \\(1 < x < 3\\)", isCorrect: false },
       { text: "② \\(x > 3\\)", isCorrect: false },
       { text: "③ \\(x < 1\\)", isCorrect: false },
-      { text: "④ \\(1 < x < 5\\)", isCorrect: false }
+      { text: "④ \\(1 < x < 5\\)", isCorrect: true }
     ]
   },
   {
@@ -190,9 +192,10 @@ const questionsData = [
     ]
   },
   {
+    // [수정 Q11]  "2 < x ≤ 4" → "3/2 < x ≤ 8/3"
     question: "부등식 \\(\\log_{\\dfrac{1}{4}} \\dfrac{2x - 3}{4} \\ge \\log_{\\dfrac{1}{4}} \\dfrac{5 - x}{4}\\)를 풀면?",
     choices: [
-      { text: "① \\(2 < x \\le 4\\)", isCorrect: true },
+      { text: "① \\(\\dfrac{3}{2} < x \\le \\dfrac{8}{3}\\)", isCorrect: true },
       { text: "② \\(x > 4\\)", isCorrect: false },
       { text: "③ \\(x < 2\\)", isCorrect: false },
       { text: "④ \\(x \\ge 5\\)", isCorrect: false }
@@ -226,39 +229,24 @@ const questionsData = [
     ]
   },
   {
+    // [수정 Q15] 로그 변환 오류를 바로잡음 – log_{√2}(x²+1)를 올바르게 변환하면
+    // 실제 식은 log₂(x+3) > 2·log₂(x²+1) 즉, \\((x+3)/(x^2+1)^2 > 1\\)를 풀어야 하나,
+    // 정답 선택지는 기존과 다르므로 여기서는 "약 -0.72 < x < 1" (근사값)로 수정함.
     question: "부등식 \\(\\log_{2} (x + 3) > \\log_{\\sqrt{2}} (x^2 + 1)\\)의 해는?",
     choices: [
-      { text: "① \\(x > -\\dfrac{4}{3}\\)", isCorrect: true },
-      { text: "② \\(x < -\\dfrac{4}{3}\\)", isCorrect: false },
+      { text: "① \\(-0.72 < x < 1\\) (약)", isCorrect: true },
+      { text: "② \\(x > -\\dfrac{4}{3}\\)", isCorrect: false },
       { text: "③ \\(x > 3\\)", isCorrect: false },
       { text: "④ \\(x < 0\\)", isCorrect: false }
     ]
   },
   {
-    question: "부등식 \\(\\log_{\\dfrac{1}{\\sqrt{3}}} (x + 6) > \\log_{\\dfrac{1}{\\sqrt{3}}} (2x + 1)\\)의 해는?",
+    question: "부등식 \\(\\log_{\\dfrac{1}{2}} (x - 1) < \\log_{\\dfrac{1}{2}} (5 - 2x)\\)의 해는?",
     choices: [
-      { text: "① \\(x > 5\\)", isCorrect: true },
-      { text: "② \\(x < 5\\)", isCorrect: false },
-      { text: "③ \\(-6 < x < 5\\)", isCorrect: false },
-      { text: "④ \\(x > -6\\)", isCorrect: false }
-    ]
-  },
-  {
-    question: "부등식 \\(\\log_{\\sqrt{3}} (x + 1) < \\log_{3} (x + 3)\\)의 해는?",
-    choices: [
-      { text: "① \\(-1 < x < 1\\)", isCorrect: true },
-      { text: "② \\(x > 1\\)", isCorrect: false },
-      { text: "③ \\(x < -1\\)", isCorrect: false },
-      { text: "④ \\(x > 3\\)", isCorrect: false }
-    ]
-  },
-  {
-    question: "부등식 \\(\\log_{3} (2x + 1) \\ge \\log_{3} (4x + 5)\\)의 해는?",
-    choices: [
-      { text: "① \\(x \\ge 1\\)", isCorrect: true },
-      { text: "② \\(x \\le -1\\)", isCorrect: false },
-      { text: "③ \\(1 < x < 3\\)", isCorrect: false },
-      { text: "④ \\(x < 0\\)", isCorrect: false }
+      { text: "① \\(2 < x < \\dfrac{5}{2}\\)", isCorrect: true },
+      { text: "② \\(x < 2\\)", isCorrect: false },
+      { text: "③ \\(x > \\dfrac{5}{2}\\)", isCorrect: false },
+      { text: "④ \\(1 < x < 2\\)", isCorrect: false }
     ]
   },
   {
@@ -298,18 +286,20 @@ const questionsData = [
     ]
   },
   {
+    // [수정 Q23] 기존 답: "10^{-8} 또는 10^9" → 수정 후 "10^{-5} 또는 10^7"
     question: "이차방정식 \\(x^2 - (\\log a + 1)x + (\\log a + 9) = 0\\)이 중근을 갖도록 하는 \\(a\\)의 값은?",
     choices: [
-      { text: "① \\(10^{-8}\\) 또는 \\(10^9\\)", isCorrect: true },
+      { text: "① \\(10^{-5}\\) 또는 \\(10^7\\)", isCorrect: true },
       { text: "② \\(10^{-4}\\)", isCorrect: false },
       { text: "③ \\(10^2\\)", isCorrect: false },
       { text: "④ \\(10^5\\)", isCorrect: false }
     ]
   },
   {
+    // [수정 Q24] 기존 답: "10^{-1} 또는 10^{10}" → 수정 후 "10^{-1} 또는 10^{4}"
     question: "이차방정식 \\(x^2 + x \\log a^2 + \\log a^3 + 4 = 0\\)이 중근을 갖는 모든 \\(a\\)의 값은?",
     choices: [
-      { text: "① \\(10^{-1}\\) 또는 \\(10^{10}\\)", isCorrect: true },
+      { text: "① \\(10^{-1}\\) 또는 \\(10^{4}\\)", isCorrect: true },
       { text: "② \\(10^{-5}\\)", isCorrect: false },
       { text: "③ \\(10^3\\)", isCorrect: false },
       { text: "④ 해 없음", isCorrect: false }
@@ -334,34 +324,37 @@ const questionsData = [
     ]
   },
   {
+    // [수정 Q27] 기존 답: "(-∞ < k < 0)" → 수정 후 "-4 log 27 < k < 0"
     question: "양수 \\(x\\)에 대해 \\(x^{\\log x} > (27x)^k\\)가 항상 성립하도록 하는 \\(k\\)의 범위는?",
     choices: [
-      { text: "① \\(-\\infty < k < 0\\)", isCorrect: true },
+      { text: "① \\(-4\\log 27 < k < 0\\)", isCorrect: true },
       { text: "② \\(0 < k < 3\\)", isCorrect: false },
       { text: "③ \\(k > 3\\)", isCorrect: false },
       { text: "④ 모든 실수 \\(k\\)", isCorrect: false }
     ]
   },
   {
+    // [수정 Q28] 기존 답: "① 3" → 수정 후 "① 2"
     question: "부등식 \\((\\log x)^2 - k \\log x + 3 - k \\ge 0\\)이 모든 양수 \\(x\\)에 대해 성립하도록 하는 \\(k\\)의 최댓값은?",
     choices: [
-      { text: "① 3", isCorrect: true },
+      { text: "① 2", isCorrect: true },
       { text: "② 2", isCorrect: false },
       { text: "③ 1", isCorrect: false },
       { text: "④ 0", isCorrect: false }
     ]
   },
   {
+    // [수정 Q29] 기존 답: "① 5" → 수정 후 "① 9"
     question: "부등식 \\((\\log_2 x)^2 + k(\\log_2 x) + 4 \\ge 0\\)이 \\(x > 0\\)인 모든 실수 \\(x\\)에 대해 성립하도록 하는 정수 \\(k\\)의 개수는?",
     choices: [
-      { text: "① 5", isCorrect: true },
+      { text: "① 9", isCorrect: true },
       { text: "② 4", isCorrect: false },
       { text: "③ 3", isCorrect: false },
       { text: "④ 2", isCorrect: false }
     ]
-  },
+  }
 ];
-
+  
 // --------------------------------------------------------------------------------------
 // 전역 변수
 // --------------------------------------------------------------------------------------
